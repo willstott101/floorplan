@@ -1,0 +1,71 @@
+<html>
+<head>
+    <style>
+    body {
+        margin: 0;
+    }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.119.1/build/three.min.js" integrity="sha256-vbZOK9FPLsRs9y5Z5FvqqQJ7R2GEUIFDpEX4W80cLOA=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.119.1/examples/js/controls/OrbitControls.js" integrity="sha256-fAVAfKkgT1N7ZTJgMFUEtYwJH19h+FYKg4NRK4hv74A=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.119.1/examples/js/loaders/GLTFLoader.js" integrity="sha256-S1wnRbf4SoN46EHk8D4Zl2qiagRCO+unaoG6tAEjOuI=" crossorigin="anonymous"></script>
+</head>
+<body></body>
+<script type="text/javascript">
+var scene = new THREE.Scene();
+var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+
+var renderer = new THREE.WebGLRenderer({
+    antialias: true
+});
+renderer.setSize( window.innerWidth, window.innerHeight );
+document.body.appendChild( renderer.domElement );
+
+var loader = new THREE.GLTFLoader();
+loader.load(
+// resource URL
+'assets/model.glb',
+// called when the resource is loaded
+function ( gltf ) {
+    scene.add( gltf.scene );
+})
+
+var controls = new THREE.OrbitControls( camera, renderer.domElement );
+camera.position.set( 0, 10, 10 );
+controls.update();
+
+function animate() {
+    requestAnimationFrame( animate );
+    renderer.render( scene, camera );
+}
+animate();
+</script>
+
+<script type="text/javascript">
+var black_hole = new THREE.TextureLoader().load( './assets/black_hole.jpg' );
+black_hole = new THREE.MeshStandardMaterial({map: black_hole});
+var cloudy_sand = new THREE.TextureLoader().load( './assets/cloudy_sand.jpg' );
+cloudy_sand = new THREE.MeshStandardMaterial({map: cloudy_sand});
+var dove_blue = new THREE.TextureLoader().load( './assets/dove_blue.jpg' );
+dove_blue = new THREE.MeshStandardMaterial({map: dove_blue});
+var serene_grey = new THREE.TextureLoader().load( './assets/serene_grey.jpg' );
+serene_grey = new THREE.MeshStandardMaterial({map: serene_grey});
+
+const PI2 = Math.PI / 2;
+
+for (let x = -10; x <= 10; x++) {
+    for (let z = -10; z <= 10; z++) {
+        let geometry = new THREE.PlaneBufferGeometry();
+        let plane = new THREE.Mesh( geometry, serene_grey );
+        plane.position.x = x;
+        plane.position.y = 0.001;
+        plane.position.z = z;
+        plane.rotation.x = -PI2;
+        let r = Math.abs(z) % 2;
+        if (Math.abs(x) % 2) r += 2;
+        plane.rotation.z = PI2 * r;
+        scene.add(plane);
+    }
+}
+
+</script>
+</html>
