@@ -9,7 +9,14 @@
     <script src="https://cdn.jsdelivr.net/npm/three@0.119.1/examples/js/controls/OrbitControls.js" integrity="sha256-fAVAfKkgT1N7ZTJgMFUEtYwJH19h+FYKg4NRK4hv74A=" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/three@0.119.1/examples/js/loaders/GLTFLoader.js" integrity="sha256-S1wnRbf4SoN46EHk8D4Zl2qiagRCO+unaoG6tAEjOuI=" crossorigin="anonymous"></script>
 </head>
-<body></body>
+<body>
+    <div style="position: absolute">
+        <button onclick="setDesign(randomDesign())">Randomize</button>
+        <button onclick="setDesign(semiRandomDesign())">Randomish</button>
+        <button onclick="setDesign('000000000000000000000000000000000000000000000000000000000000000000000000003000000000000000000010300000000000000000002013000000000000001021323100000000000000101232120000000000020010311310000000002003012322200000000030312220131200000000000103113000100000000000003010000010000000000002013110000000000000000100200001000000000000020000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000')">Save 1</button>
+        <button onclick="setDesign('000000000000000100000000000000000000000000000000000000000000000000000000003200000000000000000321032000000000000002103210300000000000032321032100000000000010103210320000000003212321032100000000001030103210300000000023212321032200000000001030103210200000000000312321210010000000010030103010000000000000002321230001000000000000103000000000000000000021000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000')">Save 2</button>
+    </div>
+</body>
 <script type="text/javascript">
 var scene = new THREE.Scene();
 var camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
@@ -41,30 +48,135 @@ animate();
 </script>
 
 <script type="text/javascript">
-var black_hole = new THREE.TextureLoader().load( './assets/black_hole.jpg' );
-black_hole = new THREE.MeshStandardMaterial({map: black_hole});
-var cloudy_sand = new THREE.TextureLoader().load( './assets/cloudy_sand.jpg' );
-cloudy_sand = new THREE.MeshStandardMaterial({map: cloudy_sand});
-var dove_blue = new THREE.TextureLoader().load( './assets/dove_blue.jpg' );
-dove_blue = new THREE.MeshStandardMaterial({map: dove_blue});
-var serene_grey = new THREE.TextureLoader().load( './assets/serene_grey.jpg' );
-serene_grey = new THREE.MeshStandardMaterial({map: serene_grey});
+const mats = [
+new THREE.MeshStandardMaterial({
+    map: new THREE.TextureLoader().load('./assets/black_hole.jpg'),
+}),
+new THREE.MeshStandardMaterial({
+    map: new THREE.TextureLoader().load('./assets/cloudy_sand.jpg'),
+}),
+new THREE.MeshStandardMaterial({
+    map: new THREE.TextureLoader().load('./assets/dove_blue.jpg'),
+}),
+new THREE.MeshStandardMaterial({
+    map: new THREE.TextureLoader().load('./assets/serene_grey.jpg'),
+}),
+];
 
 const PI2 = Math.PI / 2;
+
+const group = new THREE.Group();
+group.rotation.y = Math.PI / 4;
+scene.add(group);
 
 for (let x = -10; x <= 10; x++) {
     for (let z = -10; z <= 10; z++) {
         let geometry = new THREE.PlaneBufferGeometry();
-        let plane = new THREE.Mesh( geometry, serene_grey );
+        let plane = new THREE.Mesh( geometry, mats[0] );
         plane.position.x = x;
         plane.position.y = 0.001;
         plane.position.z = z;
+        console.log(x, z, group.children.length);
         plane.rotation.x = -PI2;
         let r = Math.abs(z) % 2;
         if (Math.abs(x) % 2) r += 2;
         plane.rotation.z = PI2 * r;
-        scene.add(plane);
+        group.add(plane);
     }
+}
+
+renderer.domElement.addEventListener("click", (event) => {
+    const mouse = new THREE.Vector2(
+        ( event.clientX / window.innerWidth ) * 2 - 1,
+        - ( event.clientY / window.innerHeight ) * 2 + 1,
+    );
+    const raycaster = new THREE.Raycaster();
+    raycaster.setFromCamera( mouse, camera );
+    const intersects = raycaster.intersectObjects(scene.children, true);
+    for (let i of intersects) {
+        const m = i.object.material;
+        let mi = mats.indexOf(m);
+        if (mi === -1) {
+            continue;
+        } else {
+            console.log(i.object.position.x, i.object.position.z);
+            console.log(
+                tileObjAt(i.object.position.x, i.object.position.z).position.x,
+                tileObjAt(i.object.position.x, i.object.position.z).position.z);
+            // if (tileObjAt(i.object.position.x, i.object.position.z) !== i.object) {
+            //     debugger;
+            //     alert("fuck");
+            // }
+            mi++;
+            mi %= 4;
+            i.object.material = mats[mi];
+        }
+    }
+
+    let vals = getDesign();
+    console.log(vals);
+}, false);
+
+function tileIdxAt(x, z) {
+    x += 10;
+    z += 10;
+    const i = 21 * x + z;
+    return i;
+}
+
+function tileObjAt(x, z) {
+    const i = tileIdxAt(x, z);
+    return group.children[i];
+}
+
+function tileAt(x, z) {
+    const tile = tileObjAt(x, z);
+    if (!tile) return 0;
+    return mats.indexOf(tile.material);
+}
+
+function getDesign() {
+    let vals = "";
+    for (let i of group.children) {
+        vals += mats.indexOf(i.material);
+    }
+    return vals;
+}
+
+function randomDesign() {
+    let vals = "";
+    for (let i of group.children) {
+        vals += Math.floor(Math.random() * Math.floor(4));
+    }
+    return vals;
+}
+
+function semiRandomDesign() {
+    let vals = "";
+    for (let i of group.children) {
+        let v = Math.floor(Math.random() * Math.floor(4));
+        let p = i.position;
+        while (
+            tileAt(p.x - 1, p.z) === v && tileAt(p.x - 2, p.z) === v
+            || tileAt(p.x + 1, p.z) === v && tileAt(p.x + 2, p.z) === v
+            || tileAt(p.x, p.z - 1) === v && tileAt(p.x, p.z - 2) === v
+            || tileAt(p.x, p.z + 1) === v && tileAt(p.x, p.z + 2) === v
+            ) {
+            v += 1;
+            v %= 4;
+        }
+        vals += v;
+    }
+    return vals;
+}
+
+function setDesign(vals) {
+    let i = 0;
+    for (let v of vals) {
+        group.children[i].material = mats[parseInt(v)];
+        i++;
+    }
+    console.log(getDesign());
 }
 
 </script>
